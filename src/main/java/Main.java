@@ -7,6 +7,9 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main {
   public static void main(String[] args) {
@@ -23,13 +26,12 @@ public class Main {
       // Since the tester restarts your program quite often, setting SO_REUSEADDR
       // ensures that we don't run into 'Address already in use' errors
       serverSocket.setReuseAddress(true);
-      clientSocket = serverSocket.accept(); // Wait for connection from client.
+      clientSocket = serverSocket.accept();
       InputStream inputStream = clientSocket.getInputStream();
       BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
       String line = reader.readLine();
       System.out.println(line);
       String[] httpPath = line.split(" ",0);
-      System.out.println(httpPath[1]);
       OutputStream output = clientSocket.getOutputStream();
       if (httpPath[1].matches("^/echo/(.+)$")){
         String str = httpPath[1].substring(6);
@@ -41,6 +43,21 @@ public class Main {
             "%s",
             str.length(),
             str
+        );
+        output.write(httpResponse.getBytes());
+      }
+      else if(httpPath[1].equals("/user-agent")){
+        reader.readLine();
+        reader.readLine();
+        String userAgent = reader.readLine().split("\\s+")[1];
+        String httpResponse = String.format(
+            "HTTP/1.1 200 OK\r\n" +
+            "Content-Type: text/plain\r\n" +
+            "Content-Length: %d\r\n" +
+            "\r\n" +
+            "%s",
+            userAgent.length(),
+            userAgent
         );
         output.write(httpResponse.getBytes());
       }
