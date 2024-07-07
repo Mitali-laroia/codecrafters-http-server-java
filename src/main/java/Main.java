@@ -29,13 +29,12 @@ public class Main {
       String line = reader.readLine();
       System.out.println(line);
       String[] httpPath = line.split(" ",0);
+      System.out.println(httpPath[1]);
       OutputStream output = clientSocket.getOutputStream();
-      output.write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
-      if(httpPath[1].equals("/")){
-        output.write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
-      }
-      else {
-        output.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
+      if (httpPath[1].equals("/")) {
+        output.write(("HTTP/1.1 200 OK\r\n\r\n").getBytes());
+      } else {
+        output.write(("HTTP/1.1 404 Not Found\r\n\r\n").getBytes());
       }
       System.out.println("accepted new connection");
     } catch (IOException e) {
