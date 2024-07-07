@@ -48,7 +48,7 @@ public class Main {
       }
       else if(httpPath[1].equals("/user-agent")){
         reader.readLine();
-        reader.readLine();
+        // reader.readLine();
         String userAgent = reader.readLine().split("\\s+")[1];
         String httpResponse = String.format(
             "HTTP/1.1 200 OK\r\n" +
