@@ -82,11 +82,10 @@ class ClientCall implements Runnable {
         System.out.println("Inside if" + directory);
         File fileExists = new File(directory, filePath);
         if(fileExists.exists()){
-          System.out.println(directory+filePath);
-          Path path = Path.of(directory+filePath);
-          String content =  Files.readString(path);
+          byte[] fileContent = Files.readAllBytes(fileExists.toPath());
+          // String content =  Files.readString(path);
           String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n"
-            + "Content-Length: %d\r\n" + "\r\n" + "%s", filePath.length(), content);
+            + "Content-Length: %d\r\n" + "\r\n" + "%s", fileContent, new String(fileContent));
           output.write(httpResponse.getBytes());
         }
         else {
