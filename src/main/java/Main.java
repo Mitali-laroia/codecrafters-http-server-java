@@ -15,7 +15,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Main {
+  private static String directory;
   public static void main(String[] args) {
+    if (args.length > 1 && args[0].equals("--directory")) {
+      directory = args[1];
+    }
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     System.out.println("Logs from your program will appear here!");
 
@@ -31,7 +35,7 @@ public class Main {
       serverSocket.setReuseAddress(true);
       while (true) {
         clientSocket = serverSocket.accept();
-        new Thread(new ClientCall(clientSocket)).start();
+        new Thread(new ClientCall(clientSocket, directory)).start();
       }
     } catch (IOException e) {
       System.out.println("IOException: " + e.getMessage());
@@ -50,9 +54,11 @@ public class Main {
 
 class ClientCall implements Runnable {
   private Socket clientSocket;
+  private String directory;
 
-  public ClientCall(Socket clientSocket) {
+  public ClientCall(Socket clientSocket, String directory) {
     this.clientSocket = clientSocket;
+    this.directory = directory;
   }
 
   @Override
@@ -75,7 +81,7 @@ class ClientCall implements Runnable {
         Boolean fileExists = new File(filePath).isFile();
         if(fileExists){
           Path path = Path.of(filePath);
-          File file = new File(filePath);
+          File file = new File(directory, filePath);
           String content =  Files.readString(path);
           String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n"
             + "Content-Length: %d\r\n" + "\r\n" + "%s", file.length(), content);
