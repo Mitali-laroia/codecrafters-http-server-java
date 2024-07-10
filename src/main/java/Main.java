@@ -1,10 +1,13 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -66,7 +69,23 @@ class ClientCall implements Runnable {
         String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
             + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
         output.write(httpResponse.getBytes());
-      } else if (httpPath[1].equals("/user-agent")) {
+      } 
+      else if (httpPath[1].matches("^/files/(.+)$")) {
+        String filePath = httpPath[1].substring(6);
+        Boolean fileExists = new File(filePath).isFile();
+        if(fileExists){
+          Path path = Path.of(filePath);
+          File file = new File(filePath);
+          String content =  Files.readString(path);
+          String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n"
+            + "Content-Length: %d\r\n" + "\r\n" + "%s", file.length(), content);
+          output.write(httpResponse.getBytes());
+        }
+        else {
+          output.write(("HTTP/1.1 404 Not Found\r\n\r\n").getBytes());
+        }
+      } 
+      else if (httpPath[1].equals("/user-agent")) {
         reader.readLine();
         // reader.readLine();
         String userAgent = reader.readLine().split("\\s+")[1];
