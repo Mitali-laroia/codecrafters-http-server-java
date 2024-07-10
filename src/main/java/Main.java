@@ -19,6 +19,7 @@ public class Main {
   public static void main(String[] args) {
     if (args.length > 1 && args[0].equals("--directory")) {
       directory = args[1];
+      System.out.println(directory);
     }
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     System.out.println("Logs from your program will appear here!");
@@ -77,11 +78,12 @@ class ClientCall implements Runnable {
         output.write(httpResponse.getBytes());
       } 
       else if (httpPath[1].matches("^/files/(.+)$")) {
-        String filePath = httpPath[1].substring(6);
-        Boolean fileExists = new File(filePath).isFile();
+        // String filePath = httpPath[1].substring(7);
+        System.out.println(directory);
+        Boolean fileExists = new File(directory).isFile();
         if(fileExists){
-          Path path = Path.of(filePath);
-          File file = new File(directory, filePath);
+          Path path = Path.of(directory);
+          File file = new File(directory, directory);
           String content =  Files.readString(path);
           String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n"
             + "Content-Length: %d\r\n" + "\r\n" + "%s", file.length(), content);
