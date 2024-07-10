@@ -20,56 +20,76 @@ public class Main {
     //
     ServerSocket serverSocket = null;
     Socket clientSocket = null;
-    
+
     try {
       serverSocket = new ServerSocket(4221);
       // Since the tester restarts your program quite often, setting SO_REUSEADDR
       // ensures that we don't run into 'Address already in use' errors
       serverSocket.setReuseAddress(true);
-      clientSocket = serverSocket.accept();
+      while (true) {
+        clientSocket = serverSocket.accept();
+        new Thread(new ClientCall(clientSocket)).start();
+      }
+    } catch (IOException e) {
+      System.out.println("IOException: " + e.getMessage());
+    } finally {
+      if (clientSocket != null) {
+        try {
+          clientSocket.close();
+        } catch (IOException e) {
+          System.out.println("IOException: " + e.getMessage());
+        }
+      }
+    }
+  }
+}
+
+
+class ClientCall implements Runnable {
+  private Socket clientSocket;
+
+  public ClientCall(Socket clientSocket) {
+    this.clientSocket = clientSocket;
+  }
+
+  @Override
+  public void run() {
+    try {
       InputStream inputStream = clientSocket.getInputStream();
       BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
       String line = reader.readLine();
       System.out.println(line);
-      String[] httpPath = line.split(" ",0);
+      String[] httpPath = line.split(" ", 0);
       OutputStream output = clientSocket.getOutputStream();
-      if (httpPath[1].matches("^/echo/(.+)$")){
+      if (httpPath[1].matches("^/echo/(.+)$")) {
         String str = httpPath[1].substring(6);
-        String httpResponse = String.format(
-            "HTTP/1.1 200 OK\r\n" +
-            "Content-Type: text/plain\r\n" +
-            "Content-Length: %d\r\n" +
-            "\r\n" +
-            "%s",
-            str.length(),
-            str
-        );
+        String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
+            + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
         output.write(httpResponse.getBytes());
-      }
-      else if(httpPath[1].equals("/user-agent")){
+      } else if (httpPath[1].equals("/user-agent")) {
         reader.readLine();
         // reader.readLine();
         String userAgent = reader.readLine().split("\\s+")[1];
-        String httpResponse = String.format(
-            "HTTP/1.1 200 OK\r\n" +
-            "Content-Type: text/plain\r\n" +
-            "Content-Length: %d\r\n" +
-            "\r\n" +
-            "%s",
-            userAgent.length(),
-            userAgent
-        );
+        String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
+            + "Content-Length: %d\r\n" + "\r\n" + "%s", userAgent.length(), userAgent);
         output.write(httpResponse.getBytes());
-      }
-      else if (httpPath[1].equals("/")) {
+      } else if (httpPath[1].equals("/")) {
         output.write(("HTTP/1.1 200 OK\r\n\r\n").getBytes());
-      }
-      else {
+      } else {
         output.write(("HTTP/1.1 404 Not Found\r\n\r\n").getBytes());
       }
       System.out.println("accepted new connection");
     } catch (IOException e) {
       System.out.println("IOException: " + e.getMessage());
+    } finally {
+      if (clientSocket != null) {
+        try {
+          clientSocket.close();
+        } catch (IOException e) {
+          System.out.println("IOException: " + e.getMessage());
+        }
+      }
     }
   }
 }
+
