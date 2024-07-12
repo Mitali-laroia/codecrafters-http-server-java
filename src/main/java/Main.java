@@ -78,7 +78,7 @@ class ClientCall implements Runnable {
             + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
         output.write(httpResponse.getBytes());
       } 
-      else if (path.startsWith("/files/") {
+      else if (path.startsWith("/files/")) {
         String fileName = path.substring(7);
               Path filePath = Paths.get(finalDirectory, fileName);
               if (Files.exists(filePath)) {
