@@ -70,6 +70,7 @@ class ClientCall implements Runnable {
       String line = reader.readLine();
       System.out.println(line);
       String[] httpPath = line.split(" ", 0);
+      String path = httpPath[1];
       OutputStream output = clientSocket.getOutputStream();
       if (httpPath[1].matches("^/echo/(.+)$")) {
         String str = httpPath[1].substring(6);
@@ -77,20 +78,19 @@ class ClientCall implements Runnable {
             + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
         output.write(httpResponse.getBytes());
       } 
-      else if (httpPath[1].matches("^/files/(.+)$")) {
-        String filePath = httpPath[1].substring(7);
-        System.out.println("Inside if" + directory);
-        File fileExists = new File(directory, filePath);
-        if(fileExists.exists()){
-          byte[] fileContent = Files.readAllBytes(fileExists.toPath());
-          // String content =  Files.readString(path);
-          String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n"
-            + "Content-Length: %d\r\n" + "\r\n" + "%s", fileContent, new String(fileContent));
-          output.write(httpResponse.getBytes());
-        }
-        else {
-          output.write(("HTTP/1.1 404 Not Found\r\n\r\n").getBytes());
-        }
+      else if (path.startsWith("/files/") {
+        String fileName = path.substring(7);
+              Path filePath = Paths.get(finalDirectory, fileName);
+              if (Files.exists(filePath)) {
+                byte[] fileBytes = Files.readAllBytes(filePath);
+                String response =
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " +
+                    fileBytes.length + "\r\n\r\n";
+                outputStream.write(response.getBytes());
+                outputStream.write(fileBytes);
+              } else {
+                outputStream.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
+              }
       } 
       else if (httpPath[1].equals("/user-agent")) {
         reader.readLine();
