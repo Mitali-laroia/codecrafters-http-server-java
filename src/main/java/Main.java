@@ -85,7 +85,7 @@ class ClientCall implements Runnable {
         String httpResponse;
         if(compressionTech.length()>0){
             httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Encoding: %s\r\n" + "Content-Type: text/plain\r\n"  
-            + "Content-Length: %d\r\n" + "%s" + "\r\n\r\n",compressionTech, str.length(), str);
+            + "Content-Length: %d\r\n"+ "\r\n" + "%s",compressionTech, str.length(), str);
         }
         else {
           httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
