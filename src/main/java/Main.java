@@ -79,17 +79,17 @@ class ClientCall implements Runnable {
         output.write(httpResponse.getBytes());
       } 
       else if (path.startsWith("/files/")) {
-        String fileName = path.substring(7);
-              Path filePath = Paths.get(finalDirectory, fileName);
-              if (Files.exists(filePath)) {
-                byte[] fileBytes = Files.readAllBytes(filePath);
+              String fileName = path.substring(7);
+              File file = new File(directory, fileName);
+              if (file.exists()) {
+                byte[] fileBytes = Files.readAllBytes(file.toPath());
                 String response =
                     "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " +
                     fileBytes.length + "\r\n\r\n";
-                outputStream.write(response.getBytes());
-                outputStream.write(fileBytes);
+                output.write(response.getBytes());
+                output.write(fileBytes);
               } else {
-                outputStream.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
+                output.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
               }
       } 
       else if (httpPath[1].equals("/user-agent")) {
