@@ -71,19 +71,6 @@ class ClientCall implements Runnable {
     this.directory = directory;
   }
 
-  public static byte[] compress(String str) throws Exception {
-    if (str == null || str.length() == 0) {
-        return null;
-    }
-    System.out.println("String length : " + str.length());
-    ByteArrayOutputStream obj=new ByteArrayOutputStream();
-    GZIPOutputStream gzip = new GZIPOutputStream(obj);
-    gzip.write(str.getBytes("UTF-8"));
-    gzip.close();
-    
-    return obj.toByteArray();
- }
-
   @Override
   public void run() {
     try {
@@ -100,45 +87,46 @@ class ClientCall implements Runnable {
         String compressionTech = "";
         while (!(line = reader.readLine()).isEmpty()) {
           if (line.startsWith("Accept-Encoding:")) {
-              compressionTech = line.substring("Accept-Encoding:".length()).trim();
+            compressionTech = line.substring("Accept-Encoding:".length()).trim();
           }
         }
         Set<String> encodingTypeSet = new HashSet<>(Arrays.asList(compressionTech.split(", ", 0)));
         String httpResponse;
-        if(encodingTypeSet.contains("gzip")){
-            byte[] compressed = null;
-            try {
-              compressed = compress(str);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-            httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Encoding: gzip\r\n" + "Content-Type: text/plain\r\n"  
-            + "Content-Length: %d\r\n\r\n", str.length(), compressed);
-            output.write(httpResponse.getBytes("UTF-8"));
-            output.write(compressed);
-        }
-        else {
+        if (encodingTypeSet.contains("gzip")) {
+          ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+          try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
+            gzipOutputStream.write(
+                str.getBytes(StandardCharsets.UTF_8));
+          }
+          byte[] gzipData = byteArrayOutputStream.toByteArray();
+          httpResponse = String
+              .format("HTTP/1.1 200 OK\r\n" + "Content-Encoding: gzip\r\n" + "Content-Type: text/plain\r\n"
+                  + "Content-Length: %d\r\n\r\n", gzipData.length);
+          output.write(httpResponse.getBytes());
+          output.write(gzipData);
+        } else {
           httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
-          + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
+              + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
           output.write(httpResponse.getBytes("UTF-8"));
         }
-        
+
       } else if (requestType.equals("POST") && path.startsWith("/files")) {
         String fileName = path.substring(7);
         int contentLength = 0;
         while (!(line = reader.readLine()).isEmpty()) {
           if (line.startsWith("Content-Length:")) {
-              contentLength = Integer.parseInt(line.substring("Content-Length:".length()).trim());
+            contentLength = Integer.parseInt(line.substring("Content-Length:".length()).trim());
           }
-        } 
+        }
         char[] body = new char[contentLength];
-        reader.read(body,0,contentLength);
+        reader.read(body, 0, contentLength);
         String bodyContent = new String(body);
         File file = new File(directory, fileName);
-        try (OutputStreamWriter writer = new OutputStreamWriter(new java.io.FileOutputStream(file), StandardCharsets.UTF_8)) {
-            writer.write(bodyContent);
+        try (OutputStreamWriter writer = new OutputStreamWriter(new java.io.FileOutputStream(file),
+            StandardCharsets.UTF_8)) {
+          writer.write(bodyContent);
         }
-        
+
         // Send response
         String response = "HTTP/1.1 201 Created\r\n\r\n";
         output.write(response.getBytes());
