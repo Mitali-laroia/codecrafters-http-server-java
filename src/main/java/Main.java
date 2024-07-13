@@ -11,7 +11,10 @@ import java.nio.file.Path;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -82,10 +85,11 @@ class ClientCall implements Runnable {
               compressionTech = line.substring("Accept-Encoding:".length()).trim();
           }
         }
+        Set<String> encodingTypeSet = new HashSet<>(Arrays.asList(compressionTech.split(", ", 0)));
         String httpResponse;
-        if(compressionTech.equals("gzip")){
-            httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Encoding: %s\r\n" + "Content-Type: text/plain\r\n"  
-            + "Content-Length: %d\r\n"+ "\r\n" + "%s",compressionTech, str.length(), str);
+        if(encodingTypeSet.contains("gzip")){
+            httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Encoding: gzip\r\n" + "Content-Type: text/plain\r\n"  
+            + "Content-Length: %d\r\n"+ "\r\n" + "%s", str.length(), str);
         }
         else {
           httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
