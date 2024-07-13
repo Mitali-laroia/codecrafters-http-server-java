@@ -76,12 +76,24 @@ class ClientCall implements Runnable {
       OutputStream output = clientSocket.getOutputStream();
       if (httpPath[1].matches("^/echo/(.+)$")) {
         String str = httpPath[1].substring(6);
-        String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
-            + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
+        String compressionTech = "";
+        while (!(line = reader.readLine()).isEmpty()) {
+          if (line.startsWith("Accept-Encoding:")) {
+              compressionTech = line.substring("Accept-Encoding:".length()).trim();
+          }
+        }
+        String httpResponse;
+        if(compressionTech.length()>0){
+            httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
+            + "Content-Length: %d\r\n" + "Content-Encoding: %s" + "\r\n" + "%s", str.length(), compressionTech, str);
+        }
+        else {
+          httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
+          + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
+        }
         output.write(httpResponse.getBytes());
       } else if (requestType.equals("POST") && path.startsWith("/files")) {
         String fileName = path.substring(7);
-        String postLine;
         int contentLength = 0;
         while (!(line = reader.readLine()).isEmpty()) {
           if (line.startsWith("Content-Length:")) {
