@@ -16,6 +16,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Main {
   private static String directory;
@@ -66,6 +71,19 @@ class ClientCall implements Runnable {
     this.directory = directory;
   }
 
+  public static byte[] compress(String str) throws Exception {
+    if (str == null || str.length() == 0) {
+        return null;
+    }
+    System.out.println("String length : " + str.length());
+    ByteArrayOutputStream obj=new ByteArrayOutputStream();
+    GZIPOutputStream gzip = new GZIPOutputStream(obj);
+    gzip.write(str.getBytes("UTF-8"));
+    gzip.close();
+    
+    return obj.toByteArray();
+ }
+
   @Override
   public void run() {
     try {
@@ -88,14 +106,23 @@ class ClientCall implements Runnable {
         Set<String> encodingTypeSet = new HashSet<>(Arrays.asList(compressionTech.split(", ", 0)));
         String httpResponse;
         if(encodingTypeSet.contains("gzip")){
+            byte[] compressed = null;
+            try {
+              compressed = compress(str);
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
             httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Encoding: gzip\r\n" + "Content-Type: text/plain\r\n"  
-            + "Content-Length: %d\r\n"+ "\r\n" + "%s", str.length(), str);
+            + "Content-Length: %d\r\n\r\n", str.length(), compressed);
+            output.write(httpResponse.getBytes("UTF-8"));
+            output.write(compressed);
         }
         else {
           httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
           + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
+          output.write(httpResponse.getBytes("UTF-8"));
         }
-        output.write(httpResponse.getBytes());
+        
       } else if (requestType.equals("POST") && path.startsWith("/files")) {
         String fileName = path.substring(7);
         int contentLength = 0;
