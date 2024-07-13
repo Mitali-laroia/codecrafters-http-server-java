@@ -16,12 +16,14 @@ import java.util.stream.Collectors;
 
 public class Main {
   private static String directory;
+
   public static void main(String[] args) {
     if (args.length > 1 && args[0].equals("--directory")) {
       directory = args[1];
       System.out.println(directory);
     }
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
+    // You can use print statements as follows for debugging, they'll be visible
+    // when running tests.
     System.out.println("Logs from your program will appear here!");
 
     // Uncomment this block to pass the first stage
@@ -52,7 +54,6 @@ public class Main {
   }
 }
 
-
 class ClientCall implements Runnable {
   private Socket clientSocket;
   private String directory;
@@ -70,6 +71,7 @@ class ClientCall implements Runnable {
       String line = reader.readLine();
       System.out.println(line);
       String[] httpPath = line.split(" ", 0);
+      String requestType = httpPath[0];
       String path = httpPath[1];
       OutputStream output = clientSocket.getOutputStream();
       if (httpPath[1].matches("^/echo/(.+)$")) {
@@ -77,22 +79,40 @@ class ClientCall implements Runnable {
         String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
             + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
         output.write(httpResponse.getBytes());
-      } 
-      else if (path.startsWith("/files/")) {
-              String fileName = path.substring(7);
-              File file = new File(directory, fileName);
-              if (file.exists()) {
-                byte[] fileBytes = Files.readAllBytes(file.toPath());
-                String response =
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " +
-                    fileBytes.length + "\r\n\r\n";
-                output.write(response.getBytes());
-                output.write(fileBytes);
-              } else {
-                output.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
-              }
-      } 
-      else if (httpPath[1].equals("/user-agent")) {
+      } else if (requestType.equals("POST") && path.startsWith("/files")) {
+        String fileName = path.substring(7);
+        String postLine;
+        int contentLength = 0;
+        while (!(line = reader.readLine()).isEmpty()) {
+          if (line.startsWith("Content-Length:")) {
+              contentLength = Integer.parseInt(line.substring("Content-Length:".length()).trim());
+          }
+        } 
+        char[] body = new char[contentLength];
+        reader.read(body,0,contentLength);
+        String bodyContent = new String(body);
+        File file = new File(directory, fileName);
+        try (OutputStreamWriter writer = new OutputStreamWriter(new java.io.FileOutputStream(file), StandardCharsets.UTF_8)) {
+            writer.write(bodyContent);
+        }
+        
+        // Send response
+        String response = "HTTP/1.1 201 Created\r\n\r\n";
+        output.write(response.getBytes());
+
+      } else if (path.startsWith("/files/")) {
+        String fileName = path.substring(7);
+        File file = new File(directory, fileName);
+        if (file.exists()) {
+          byte[] fileBytes = Files.readAllBytes(file.toPath());
+          String response = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " +
+              fileBytes.length + "\r\n\r\n";
+          output.write(response.getBytes());
+          output.write(fileBytes);
+        } else {
+          output.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
+        }
+      } else if (httpPath[1].equals("/user-agent")) {
         reader.readLine();
         // reader.readLine();
         String userAgent = reader.readLine().split("\\s+")[1];
@@ -118,4 +138,3 @@ class ClientCall implements Runnable {
     }
   }
 }
-
