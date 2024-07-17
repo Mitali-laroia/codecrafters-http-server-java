@@ -7,15 +7,28 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Main {
   private static String directory;
+
   public static void main(String[] args) {
     if (args.length > 1 && args[0].equals("--directory")) {
       directory = args[1];
       System.out.println(directory);
     }
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
+    // You can use print statements as follows for debugging, they'll be visible
+    // when running tests.
     System.out.println("Logs from your program will appear here!");
 
     // Uncomment this block to pass the first stage
@@ -46,7 +59,6 @@ public class Main {
   }
 }
 
-
 class ClientCall implements Runnable {
   private Socket clientSocket;
   private String directory;
@@ -64,27 +76,71 @@ class ClientCall implements Runnable {
       String line = reader.readLine();
       System.out.println(line);
       String[] httpPath = line.split(" ", 0);
+      String requestType = httpPath[0];
+      String path = httpPath[1];
       OutputStream output = clientSocket.getOutputStream();
       if (httpPath[1].matches("^/echo/(.+)$")) {
         String str = httpPath[1].substring(6);
-        String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
-            + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
-        output.write(httpResponse.getBytes());
-      } 
-      else if (httpPath[1].matches("^/files/(.+)$")) {
-        String filePath = httpPath[1].substring(7);
-        File file = new File(directory, filePath);
-        if(file.exists()){
-          byte[] fileContent = Files.readAllBytes(file.toPath());
-          String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n"
-            + "Content-Length: %d\r\n" + "\r\n" + "%s", fileContent, new String(fileContent));
+        String compressionTech = "";
+        while (!(line = reader.readLine()).isEmpty()) {
+          if (line.startsWith("Accept-Encoding:")) {
+            compressionTech = line.substring("Accept-Encoding:".length()).trim();
+          }
+        }
+        Set<String> encodingTypeSet = new HashSet<>(Arrays.asList(compressionTech.split(", ", 0)));
+        String httpResponse;
+        if (encodingTypeSet.contains("gzip")) {
+          ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+          try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
+            gzipOutputStream.write(
+                str.getBytes(StandardCharsets.UTF_8));
+          }
+          byte[] gzipData = byteArrayOutputStream.toByteArray();
+          httpResponse = String
+              .format("HTTP/1.1 200 OK\r\n" + "Content-Encoding: gzip\r\n" + "Content-Type: text/plain\r\n"
+                  + "Content-Length: %d\r\n\r\n", gzipData.length);
           output.write(httpResponse.getBytes());
+          output.write(gzipData);
+        } else {
+          httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n"
+              + "Content-Length: %d\r\n" + "\r\n" + "%s", str.length(), str);
+          output.write(httpResponse.getBytes("UTF-8"));
         }
-        else {
-          output.write(("HTTP/1.1 404 Not Found\r\n\r\n").getBytes());
+
+      } else if (requestType.equals("POST") && path.startsWith("/files")) {
+        String fileName = path.substring(7);
+        int contentLength = 0;
+        while (!(line = reader.readLine()).isEmpty()) {
+          if (line.startsWith("Content-Length:")) {
+            contentLength = Integer.parseInt(line.substring("Content-Length:".length()).trim());
+          }
         }
-      } 
-      else if (httpPath[1].equals("/user-agent")) {
+        char[] body = new char[contentLength];
+        reader.read(body, 0, contentLength);
+        String bodyContent = new String(body);
+        File file = new File(directory, fileName);
+        try (OutputStreamWriter writer = new OutputStreamWriter(new java.io.FileOutputStream(file),
+            StandardCharsets.UTF_8)) {
+          writer.write(bodyContent);
+        }
+
+        // Send response
+        String response = "HTTP/1.1 201 Created\r\n\r\n";
+        output.write(response.getBytes());
+
+      } else if (path.startsWith("/files/")) {
+        String fileName = path.substring(7);
+        File file = new File(directory, fileName);
+        if (file.exists()) {
+          byte[] fileBytes = Files.readAllBytes(file.toPath());
+          String response = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " +
+              fileBytes.length + "\r\n\r\n";
+          output.write(response.getBytes());
+          output.write(fileBytes);
+        } else {
+          output.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
+        }
+      } else if (httpPath[1].equals("/user-agent")) {
         reader.readLine();
         // reader.readLine();
         String userAgent = reader.readLine().split("\\s+")[1];
@@ -110,4 +166,3 @@ class ClientCall implements Runnable {
     }
   }
 }
-
