@@ -1,39 +1,41 @@
-[![progress-banner](https://backend.codecrafters.io/progress/http-server/e1304a63-d0ab-4e02-b1d4-a63d9f4d27ec)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
-This is a starting point for Java solutions to the
-["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
+# HTTP Server in Java
 
-[HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) is the
-protocol that powers the web. In this challenge, you'll build a HTTP/1.1 server
-that is capable of serving multiple clients.
+Presenting you a http server from scratch in Java. In version one, I have added basic functionalities like make a get request, post request with file upload and apply compression to the file. This TCP server listens on port 4221.
 
-Along the way you'll learn about TCP servers,
-[HTTP request syntax](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html),
-and more.
+### Routes Info:
+- Get request: ``` curl -v http://localhost:4221 ``` 
+    
+    Expected response: ``` HTTP/1.1 200 OK\r\n\r\n ```
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+- Get request with response body : ```  curl -v http://localhost:4221/echo/abc ``` 
+    
+    Expected response: ``` HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 3\r\n\r\nabc ```
 
-# Passing the first stage
+- Get request to read headers : ```   curl -v --header "User-Agent: foobar/1.2.3" http://localhost:4221/user-agent``` 
+    
+    Expected response: ``` HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nfoobar/1.2.3 ```
 
-The entry point for your HTTP server implementation is in
-`src/main/java/Main.java`. Study and uncomment the relevant code, and push your
-changes to pass the first stage:
+- Get request to check files in a directory: ```  curl -i http://localhost:4221/files/foo ``` 
+    
+    Expected response: ``` HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 14\r\n\r\nHello, World! ```
 
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
-```
+- Post request to upload files in a directory: ```   curl -v --data "12345" -H "Content-Type: application/octet-stream" http://localhost:4221/files/file_123 ``` 
+    
+    Expected response: ```HTTP/1.1 201 Created\r\n\r\n ```
 
-Time to move on to the next stage!
+- Get request to compress contents of a file using gzip compression: ```   curl -v -H "Accept-Encoding: gzip" http://localhost:4221/echo/abc | hexdump -C ``` 
+    
+    Expected response: ```HTTP/1.1 200 OK
+    Content-Encoding: gzip
+    Content-Type: text/plain
+    Content-Length: 23 ```
 
-# Stage 2 & beyond
+    ``` 1F 8B 08 00 00 00 00 00 ``` 
 
-Note: This section is for stages 2 and beyond.
+    ```    00 03 4B 4C 4A 06 00 C2 ```
 
-1. Ensure you have `java (21)` installed locally
-1. Run `./your_server.sh` to run your program, which is implemented in
-   `src/main/java/Main.java`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+    ```    41 24 35 03 00 00 00 ```
+
+This server supports taking concurrent requests.
+

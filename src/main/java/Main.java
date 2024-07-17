@@ -4,15 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class Main {
   private static String directory;
@@ -79,11 +73,9 @@ class ClientCall implements Runnable {
       } 
       else if (httpPath[1].matches("^/files/(.+)$")) {
         String filePath = httpPath[1].substring(7);
-        System.out.println("Inside if" + directory);
-        File fileExists = new File(directory, filePath);
-        if(fileExists.exists()){
-          byte[] fileContent = Files.readAllBytes(fileExists.toPath());
-          // String content =  Files.readString(path);
+        File file = new File(directory, filePath);
+        if(file.exists()){
+          byte[] fileContent = Files.readAllBytes(file.toPath());
           String httpResponse = String.format("HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n"
             + "Content-Length: %d\r\n" + "\r\n" + "%s", fileContent, new String(fileContent));
           output.write(httpResponse.getBytes());
